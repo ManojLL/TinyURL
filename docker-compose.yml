@@ -1,0 +1,52 @@
+
+services:
+  tinyurl-service:
+    build:
+      context: .
+      dockerfile: TiNyUrlService/Dockerfile
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      CSRF_ENABLE: ${CSRF_ENABLE}
+      CORS_ALLOW_CREDENTIAL: ${CORS_ALLOW_CREDENTIAL}
+      CORS_ALLOW_ORIGIN_PATTERNS: ${CORS_ALLOW_ORIGIN_PATTERNS}
+      CORS_ALLOW_HEADERS: ${CORS_ALLOW_HEADERS}
+      CORS_ALLOW_METHODS: ${CORS_ALLOW_METHODS}
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: mysql:8
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_DATABASE: ${DATABASE_NAME}
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      TZ: UTC
+    volumes:
+      - db_data:/var/lib/mysql
+    secrets:
+      - db_password
+      - db_root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+volumes:
+  db_data:
+
+secrets:
+  db_root_password:
+    environment: DATABASE_ROOT_PASSWORD
+  db_password:
+    environment: DATABASE_PASSWORD
